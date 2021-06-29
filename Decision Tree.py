@@ -8,11 +8,13 @@ import datetime
 
 start = datetime.datetime.now()
 
+#create spark session
 spark = SparkSession \
     .builder \
     .appName("logistic regression") \
     .getOrCreate()
 
+# read train and test data
 train_datafile = "/Users/alfred/PycharmProjects/cc2/data/Train-label-28x28.csv"
 
 test_datafile = "/Users/alfred/PycharmProjects/cc2/data/Test-label-28x28.csv"
@@ -27,6 +29,7 @@ test_vectors = assembler_test.transform(test_data).select(test_data.columns[0],"
 
 train_vectors.show(2)
 
+# use PCA to reduce dimension to 75.
 pca = PCA(k=75, inputCol="features",outputCol='pca')
 
 model = pca.fit(train_vectors)
@@ -38,10 +41,12 @@ pca_testresult = model.transform(test_vectors).select(test_vectors.columns[0],'p
 rdd_train = pca_result.rdd
 rdd_test = pca_testresult.rdd
 
+# function to convert rdd to labelled point to fit the required format for decision trees.
 def convert(y):
     d = [x for x in y]
     return LabeledPoint(d[0],d[1:])
 
+# apply convert function to all features stored in rdd by using lambda function. 
 parsed_traindata = rdd_train.map(lambda x:convert(x))
 
 parsed_testdata = rdd_test.map(lambda x:convert(x))
@@ -51,6 +56,7 @@ print(parsed_traindata.take(2))
 
 classifier = DecisionTree.trainClassifier(parsed_testdata,numClasses=10,categoricalFeaturesInfo={},maxDepth=5,maxBins=32)
 
+# apply lambda function to make precitions and test the result against the answer. 
 prediction = classifier.predict(parsed_testdata.map(lambda x:x.features))
 
 test_result = parsed_testdata.map(lambda d:d.label).zip(prediction)
