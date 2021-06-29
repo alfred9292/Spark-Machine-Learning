@@ -8,18 +8,20 @@ import time
 
 start = time.time()
 
+#create spark session
 spark = SparkSession \
     .builder \
     .appName("NaiveBayes") \
     .getOrCreate()
 
+# read training and testing data
 train_datafile = "hdfs://soit-hdp-pro-1.ucc.usyd.edu.au/share/MNIST/Train-label-28x28.csv"
 
 test_datafile = "hdfs://soit-hdp-pro-1.ucc.usyd.edu.au/share/MNIST/Test-label-28x28.csv"
 train_data = spark.read.csv(train_datafile, header=False,inferSchema="true")
 test_data = spark.read.csv(test_datafile, header=False,inferSchema="true")
 
-
+# extract features and convert to vectors.
 assembler = VectorAssembler(inputCols=train_data.columns[1:],outputCol="features")
 assembler_test = VectorAssembler(inputCols=test_data.columns[1:],outputCol="features")
 
@@ -69,6 +71,7 @@ print("Overall Precision = %s" % precision)
 print("Overall Recall = %s" %recall)
 print("F1 = %s" %f1)
 
+# use lambda function to calculate performance metrics
 labels = rdd.map(lambda lp: lp.label).distinct().collect()
 for label in sorted(labels):
     print("Class %s precision = %s" % (label, metrics.precision(label)))
